@@ -1,28 +1,42 @@
-//main.c
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <windows.h>
-#include "renderer.h"
-#include "file_handler.h"
+// Filename: main.c
+// Author: Gabriel Sullivan
+// Date: 2025-05-19
+// Purpose: A simple text editor that allows you to edit files in a console window.
+//          It supports basic operations like moving the cursor, inserting and deleting characters, and saving the file.
+//          It uses the Windows API for console input and output.
+// Compile code: gcc main.c renderer.c file_handler.c -o text_editor.exe -luser32 -lkernel32
+// Run code: text_editor.exe <filename>
 
-// the main editor loop
+#include <stdio.h> // Include standard libraries for input/output
+#include <stdlib.h> // Include standard libraries for input/output and memory management
+#include <string.h> // Include standard libraries for file operations and string manipulation
+#include <windows.h> // Include Windows API for console functions
+#include "renderer.h" // Include the renderer.h header for rendering functions
+#include "file_handler.h" // Include the file_handler.h header for file operations
+
+// Function name: input_loop
+// Purpose: Handles user input and updates the editor state accordingly.
+// Input: Pointer to the editor state structure.
+// Output: None
 void input_loop(EditorState *editor);
 
 int main(int argc, char *argv[])
 {
-    EditorState *editor = malloc(sizeof(EditorState));
+    EditorState *editor = malloc(sizeof(EditorState)); // Allocate memory for the editor state
 
-    editor->lines = malloc(MAX_FILE_SIZE * sizeof(char *));
+    editor->lines = malloc(MAX_FILE_SIZE * sizeof(char *)); // Allocate memory for the lines
+    // Check if memory allocation was successful
     if (!editor->lines)
     {
         perror("Memory allocation failed.");
         exit(1);
     }
 
+    // Loop to allocate memory for each line
     for (int i = 0; i < MAX_FILE_SIZE; i++)
     {
-        editor->lines[i] = malloc(MAX_LINE_SIZE * sizeof(char));
+        editor->lines[i] = malloc(MAX_LINE_SIZE * sizeof(char)); // Allocate memory for each line
+        // Check if memory allocation was successful
         if (!editor->lines[i])
         {
             perror("Memory allocation failed.");
@@ -30,49 +44,63 @@ int main(int argc, char *argv[])
         }
     }
 
-    // Initialize the editor
+    // Initialize the editor state
     editor->line_count = 0;
     editor->cursor_x = 0;
     editor->cursor_y = 0;
     editor->bottom = 10; // Assuming the initial bottom value is 10
     editor->filename = NULL;
 
-    set_color(10);
+    set_color(10); // Set the color of the text to green
+
+    // Check if a file name is provided as a command line argument
+    // If not, prompt the user to enter a file name
     if (argc < 2)
     {
         printf("Please specify a file name.\n");
         return 1;
     }
 
-    editor->filename = argv[1];
-    load_file(editor);
+    editor->filename = argv[1]; // Assign the file name from command line argument
+    load_file(editor); // Load the file into the editor state
+
+    // Check if the file was loaded successfully
+    if (editor->line_count == 0)
+    {
+        printf("File is empty or could not be loaded.\n");
+        return 1;
+    }
 
     // Display editor for the first time
-    system("cls");
-    render_editor(editor);
+    system("cls"); // Clear the console
+    render_editor(editor); // Render the editor with the loaded file
 
-    // reset the curspr
+    // Set the initial cursor position
     editor->cursor_x = 4;
     editor->cursor_y = 2;
     move_cursor(editor->cursor_x, editor->cursor_y);
 
-    input_loop(editor);
-    clear_memory(editor);
+    input_loop(editor); // Start the input loop to handle user input
+    clear_memory(editor); // Free the allocated memory for the editor state
 
     return 0;
 }
 
+// Function name: input_loop
+// Purpose: Handles user input and updates the editor state accordingly.
+// Input: Pointer to the editor state structure.
+// Output: None
 void input_loop(EditorState *editor)
 {
-    // these are the location of the cursor relative to the document
+    // These are the location of the cursor relative to the document
     int absolute_y = 0;
     int absolute_x = 0;
 
-    // this is the correct starting x whenever moving down a row
+    // This is the correct starting x whenever moving down a row
     int official_absolute_x = 0;
 
-    int longest_length = MAX_LINE_SIZE; // the length of the line for restricting cursor movement in the x direction
-    int size = MAX_FILE_SIZE;           // the size of the lines array
+    int longest_length = MAX_LINE_SIZE; // The length of the line for restricting cursor movement in the x direction
+    int size = MAX_FILE_SIZE; // The size of the lines array
 
     HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
     INPUT_RECORD inputRecord;
@@ -89,7 +117,7 @@ void input_loop(EditorState *editor)
             // Handle arrow keys
             if (key == VK_UP)
             {
-                if (absolute_y > 0)
+                if (absolute_y > 0) 
                 {
                     absolute_y--;
                     absolute_x = official_absolute_x;
